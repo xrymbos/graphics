@@ -11,7 +11,7 @@
 #include <math.h>
 
 //Function to test if an input point is within the quad.
-const float eps = 10e-2;
+const float eps = 10e-6;
 
 bool Plane::isInside(Vector pos)
 {

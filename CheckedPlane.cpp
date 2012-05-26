@@ -13,7 +13,6 @@ Color CheckedPlane::getColor(Vector pos){
 	double yParam = (pos - a).dot(d - a) / (d - a).dot(d - a); //how far we are along the other
 	int xCol = (xParam * xDivisions);
 	int yCol = (yParam * yDivisions);
-	printf("getting color at %lf %lf\n",xParam, yParam);
 	if(xCol % 2 == yCol % 2)
 	{
 		return color;

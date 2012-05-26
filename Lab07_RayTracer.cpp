@@ -11,6 +11,7 @@
 #include "Sphere.h"
 #include "CheckedPlane.h"
 #include "Plane.h"
+#include "Cube.h"
 #include "Color.h"
 #include "Object.h"
 #include <GL/glut.h>
@@ -109,7 +110,7 @@ Color trace(Vector pos, Vector dir, int step)
 	else spec = pow(rDotv, 10);
 
 	Color colorSum = col.phongLight(backgroundCol, lDotn, spec);
-	if(q.index == 1 && step < MAX_STEPS){
+	if(q.index == 1 && step < MAX_STEPS){//we trace a reflection ray
 		Vector view = dir * -1;
 		Vector reflectionVector = ((n*2)*(n.dot(view))) - view;
 		reflectionVector.normalise();
@@ -177,11 +178,14 @@ void initialize()
 	Sphere * sphere3 = new Sphere(Vector(9,7,-50), 4.0, Color::GREEN);
 	CheckedPlane *plane = new CheckedPlane(Vector(-10, -10, -40), Vector(10, -10, -40),
 			Vector(10., -10, -80), Vector(-10., -10, -80), Color(1, 0, 1), Color(0, 1, 0), 3, 4);
+	Cube *cube = new Cube(Vector(-5, -8, -50), 2., Color(1, 0, 0));
+
 
 	sceneObjects.push_back(sphere1);
 	sceneObjects.push_back(sphere2);
 	sceneObjects.push_back(sphere3);
 	sceneObjects.push_back(plane);
+	sceneObjects.push_back(cube);
 }
 
 
