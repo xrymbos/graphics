@@ -103,7 +103,11 @@ Color trace(Vector pos, Vector dir, int step, int refraction)
 		/*if(blocker.index != -1){//easier to see which object is casting shadows
 		  return sceneObjects[blocker.index]->getColor();
 		  }*/
-		return col.phongLight(backgroundCol, 0.0, 0.0);
+		Color ret = col.phongLight(backgroundCol, 0.0, 0.0);
+		if(blocker.index == 5){
+			ret.combineColor(sceneObjects[blocker.index]->getColor(blocker.point), refrCoeff);
+		}
+		return ret;
 	}
 
 	Vector r = ((n * 2) * lDotn) - l;
