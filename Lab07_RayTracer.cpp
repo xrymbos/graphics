@@ -21,12 +21,15 @@ const float WIDTH = 20.0;
 const float HEIGHT = 20.0;
 const float EDIST = 40.0;
 const int PPU = 30; 
-const int MAX_STEPS = 5;
+const int MAX_STEPS = 100;
 const float XMIN = -WIDTH * 0.5;
 const float XMAX =  WIDTH * 0.5;
 const float YMIN = -HEIGHT * 0.5;
 const float YMAX =  HEIGHT * 0.5;
-const float reflCoeff = 1;
+const float reflCoeff = 0.5;
+const float refrCoeff = 0.5;
+const float glassRefr = 1.03;//refraction index of "glass"
+const float airRefr = 1;//refraction index of "air"
 
 vector<Object*> sceneObjects;
 
@@ -75,9 +78,11 @@ PointBundle closestPt(Vector pos, Vector dir)
  * If reflections and refractions are to be included, then secondary rays will 
  * have to be traced from the point, by converting this method to a recursive
  * procedure.
+ * The step parameter is the number of "bounces" the ray has gone through thus far.
+ * The refraction parameter is the refraction index of the medium that the ray is travelling through.
  */
 
-Color trace(Vector pos, Vector dir, int step)
+Color trace(Vector pos, Vector dir, int step, int refraction)
 {
 	PointBundle q = closestPt(pos, dir);
 
@@ -94,7 +99,7 @@ Color trace(Vector pos, Vector dir, int step)
 	PointBundle blocker = closestPt(q.point, shadowRay);
 	double blockDist = blocker.point.dist(q.point);
 
-	if(lDotn <= 0 || (blocker.index != -1 && blockDist < lightDist)){
+	if(q.index != 5 && (lDotn <= 0 || (blocker.index != -1 && blockDist < lightDist))){
 		/*if(blocker.index != -1){//easier to see which object is casting shadows
 		  return sceneObjects[blocker.index]->getColor();
 		  }*/
@@ -114,9 +119,33 @@ Color trace(Vector pos, Vector dir, int step)
 		Vector view = dir * -1;
 		Vector reflectionVector = ((n*2)*(n.dot(view))) - view;
 		reflectionVector.normalise();
-		Color reflectionCol = trace(q.point, reflectionVector, step+1);
+		Color reflectionCol = trace(q.point, reflectionVector, step+1, airRefr);
 		colorSum.combineColor(reflectionCol,reflCoeff);
 	}
+	if(q.index == 5 && step < MAX_STEPS){
+		double newRefr = -1;
+		if(refraction == airRefr){
+			newRefr = glassRefr;
+		}
+		else{
+			newRefr = airRefr;
+		}
+		double c1 = -n.dot(dir);
+		double N = refraction / newRefr;
+		double c2 = sqrt(1 - N * N * (1 - c1 * c1));
+		Vector refractionVector = dir * N + n * (N * c1 - c2);
+		if(refractionVector.dot(dir) < 0){
+			if(newRefr == airRefr){
+				newRefr = glassRefr;
+			}
+			else{
+				newRefr = airRefr;
+			}
+		}
+		Color refractionCol = trace(q.point, refractionVector, step+1, newRefr);
+		colorSum.combineColor(refractionCol, refrCoeff);
+	}
+
 	return colorSum;
 
 }
@@ -151,7 +180,7 @@ void display()
 
 			dir.normalise();			//Normalise this direction
 
-			Color col = trace (eye, dir, 1); //Trace the primary ray and get the colour value
+			Color col = trace (eye, dir, 1, airRefr); //Trace the primary ray and get the colour value
 			glColor3f(col.r, col.g, col.b);
 			glVertex2f(x1, y1);				//Draw each pixel with its color value
 			glVertex2f(x1 + pixelSize, y1);
@@ -179,6 +208,7 @@ void initialize()
 	CheckedPlane *plane = new CheckedPlane(Vector(-10, -10, -40), Vector(10, -10, -40),
 			Vector(10., -10, -80), Vector(-10., -10, -80), Color(1, 0, 1), Color(0, 1, 0), 3, 4);
 	Cube *cube = new Cube(Vector(-5, -8, -50), 2., Color(1, 0, 0));
+	Sphere * refract = new Sphere(Vector(3,-5,-50), 4.0, Color::BLUE);
 
 
 	sceneObjects.push_back(sphere1);
@@ -186,6 +216,7 @@ void initialize()
 	sceneObjects.push_back(sphere3);
 	sceneObjects.push_back(plane);
 	sceneObjects.push_back(cube);
+	sceneObjects.push_back(refract);
 }
 
 
