@@ -1,14 +1,15 @@
 /*========================================================================
-* COSC 363  Lab06
-* A simple ray tracer
-*========================================================================
-*/
+ * COSC 363  Lab06
+ * A simple ray tracer
+ *========================================================================
+ */
 #include <iostream>
 #include <cmath>
 #include <cstdio>
 #include <vector>
 #include "Vector.h"
 #include "Sphere.h"
+#include "CheckedPlane.h"
 #include "Plane.h"
 #include "Color.h"
 #include "Object.h"
@@ -39,19 +40,19 @@ struct PointBundle
 };
 
 /*
-* This function compares the given ray with all objects in the scene
-* and computes the closest point  of intersection.
-*/
+ * This function compares the given ray with all objects in the scene
+ * and computes the closest point  of intersection.
+ */
 PointBundle closestPt(Vector pos, Vector dir)
 {
-    Vector  point(0, 0, 0);
+	Vector  point(0, 0, 0);
 	float min = 10000.0;
 
 	PointBundle out = {point, -1, 0.0};
 
-    for(int i = 0;  i < (int)sceneObjects.size();  i++)
+	for(int i = 0;  i < (int)sceneObjects.size();  i++)
 	{
-        float t = sceneObjects[i]->intersect(pos, dir);
+		float t = sceneObjects[i]->intersect(pos, dir);
 		if(t > 0)        //Intersects the object
 		{
 			point = pos + dir*t;
@@ -69,53 +70,53 @@ PointBundle closestPt(Vector pos, Vector dir)
 }
 
 /*
-* Computes the colour value obtained by tracing a ray.
-* If reflections and refractions are to be included, then secondary rays will 
-* have to be traced from the point, by converting this method to a recursive
-* procedure.
-*/
+ * Computes the colour value obtained by tracing a ray.
+ * If reflections and refractions are to be included, then secondary rays will 
+ * have to be traced from the point, by converting this method to a recursive
+ * procedure.
+ */
 
 Color trace(Vector pos, Vector dir, int step)
 {
-    PointBundle q = closestPt(pos, dir);
+	PointBundle q = closestPt(pos, dir);
 
-    if(q.index == -1) return backgroundCol;        //no intersection
+	if(q.index == -1) return backgroundCol;        //no intersection
 
-    Color col = sceneObjects[q.index]->getColor(); //Object's colour
-    Vector n = sceneObjects[q.index]->normal(q.point);
-    Vector l = light - q.point;
-    l.normalise();
-    double lDotn = l.dot(n);
-    Vector shadowRay = light - q.point;
-    double lightDist = shadowRay.length();
-    shadowRay.normalise();
-    PointBundle blocker = closestPt(q.point, shadowRay);
-    double blockDist = blocker.point.dist(q.point);
+	Color col = sceneObjects[q.index]->getColor(q.point); //Object's colour
+	Vector n = sceneObjects[q.index]->normal(q.point);
+	Vector l = light - q.point;
+	l.normalise();
+	double lDotn = l.dot(n);
+	Vector shadowRay = light - q.point;
+	double lightDist = shadowRay.length();
+	shadowRay.normalise();
+	PointBundle blocker = closestPt(q.point, shadowRay);
+	double blockDist = blocker.point.dist(q.point);
 
-    if(lDotn <= 0 || (blocker.index != -1 && blockDist < lightDist)){
-	    /*if(blocker.index != -1){//easier to see which object is casting shadows
-		    return sceneObjects[blocker.index]->getColor();
-	    }*/
-	    return col.phongLight(backgroundCol, 0.0, 0.0);
-    }
+	if(lDotn <= 0 || (blocker.index != -1 && blockDist < lightDist)){
+		/*if(blocker.index != -1){//easier to see which object is casting shadows
+		  return sceneObjects[blocker.index]->getColor();
+		  }*/
+		return col.phongLight(backgroundCol, 0.0, 0.0);
+	}
 
-    Vector r = ((n * 2) * lDotn) - l;
-    r.normalise();
-    Vector v(-dir.x, -dir.y, -dir.z);
-    float rDotv = r.dot(v);
-    float spec;
-    if(rDotv < 0) spec = 0.0;
-    else spec = pow(rDotv, 10);
+	Vector r = ((n * 2) * lDotn) - l;
+	r.normalise();
+	Vector v(-dir.x, -dir.y, -dir.z);
+	float rDotv = r.dot(v);
+	float spec;
+	if(rDotv < 0) spec = 0.0;
+	else spec = pow(rDotv, 10);
 
-    Color colorSum = col.phongLight(backgroundCol, lDotn, spec);
-    if(q.index == 1 && step < MAX_STEPS){
-	    Vector view = dir * -1;
-	    Vector reflectionVector = ((n*2)*(n.dot(view))) - view;
-	    reflectionVector.normalise();
-	    Color reflectionCol = trace(q.point, reflectionVector, step+1);
-	    colorSum.combineColor(reflectionCol,reflCoeff);
-    }
-    return colorSum;
+	Color colorSum = col.phongLight(backgroundCol, lDotn, spec);
+	if(q.index == 1 && step < MAX_STEPS){
+		Vector view = dir * -1;
+		Vector reflectionVector = ((n*2)*(n.dot(view))) - view;
+		reflectionVector.normalise();
+		Color reflectionCol = trace(q.point, reflectionVector, step+1);
+		colorSum.combineColor(reflectionCol,reflCoeff);
+	}
+	return colorSum;
 
 }
 
@@ -145,55 +146,55 @@ void display()
 			y1 = YMIN + j*pixelSize;
 			yc = y1 + halfPixelSize;
 
-		    Vector dir(xc, yc, -EDIST);	//direction of the primary ray
+			Vector dir(xc, yc, -EDIST);	//direction of the primary ray
 
-		    dir.normalise();			//Normalise this direction
+			dir.normalise();			//Normalise this direction
 
-		    Color col = trace (eye, dir, 1); //Trace the primary ray and get the colour value
+			Color col = trace (eye, dir, 1); //Trace the primary ray and get the colour value
 			glColor3f(col.r, col.g, col.b);
 			glVertex2f(x1, y1);				//Draw each pixel with its color value
 			glVertex2f(x1 + pixelSize, y1);
 			glVertex2f(x1 + pixelSize, y1 + pixelSize);
 			glVertex2f(x1, y1 + pixelSize);
-        }
-    }
+		}
+	}
 
-    glEnd();
-    glFlush();
+	glEnd();
+	glFlush();
 }
 
 
 
 void initialize()
 {
-    glMatrixMode(GL_PROJECTION);
-    gluOrtho2D(XMIN, XMAX, YMIN, YMAX);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glClearColor(0, 0, 0, 1);
-    Sphere * sphere1 = new Sphere(Vector(5,6,-70), 3.0, Color::RED);
-    Sphere * sphere2 = new Sphere(Vector(-7,0,-70), 10.0, Color(0,0.1,0.2));
-    Sphere * sphere3 = new Sphere(Vector(9,7,-50), 4.0, Color::GREEN);
-    Plane *plane = new Plane(Vector(-10, -10, -40), Vector(10, -10, -40),
-		    Vector(10., -10, -80), Vector(-10., -10, -80), Color(1, 0, 1));
+	glMatrixMode(GL_PROJECTION);
+	gluOrtho2D(XMIN, XMAX, YMIN, YMAX);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glClearColor(0, 0, 0, 1);
+	Sphere * sphere1 = new Sphere(Vector(5,6,-70), 3.0, Color::RED);
+	Sphere * sphere2 = new Sphere(Vector(-7,0,-70), 10.0, Color(0,0.1,0.2));
+	Sphere * sphere3 = new Sphere(Vector(9,7,-50), 4.0, Color::GREEN);
+	CheckedPlane *plane = new CheckedPlane(Vector(-10, -10, -40), Vector(10, -10, -40),
+			Vector(10., -10, -80), Vector(-10., -10, -80), Color(1, 0, 1), Color(0, 1, 0), 3, 4);
 
-    sceneObjects.push_back(sphere1);
-    sceneObjects.push_back(sphere2);
-    sceneObjects.push_back(sphere3);
-    sceneObjects.push_back(plane);
+	sceneObjects.push_back(sphere1);
+	sceneObjects.push_back(sphere2);
+	sceneObjects.push_back(sphere3);
+	sceneObjects.push_back(plane);
 }
 
 
 int main(int argc, char *argv[]) {
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB );
-    glutInitWindowSize(600, 600);
-    glutInitWindowPosition(20, 20);
-    glutCreateWindow("Raytracing");
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB );
+	glutInitWindowSize(600, 600);
+	glutInitWindowPosition(20, 20);
+	glutCreateWindow("Raytracing");
 
-    glutDisplayFunc(display);
-    initialize();
+	glutDisplayFunc(display);
+	initialize();
 
-    glutMainLoop();
-    return 0;
+	glutMainLoop();
+	return 0;
 }

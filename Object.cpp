@@ -9,6 +9,11 @@
 
 #include "Object.h"
 
+Color Object::getColor(Vector pos)
+{
+	return color;
+}
+
 Color Object::getColor()
 {
 	return color;
