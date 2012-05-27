@@ -32,6 +32,7 @@ const float glassRefr = 1.03;//refraction index of "glass"
 const float airRefr = 1;//refraction index of "air"
 const double sampleThresh = 1e-4;
 const int minSamples = 10;
+const int sampleSteps = 5;
 
 vector<Object*> sceneObjects;
 
@@ -156,10 +157,13 @@ Color trace(Vector pos, Vector dir, int step, int refraction)
 
 }
 
-Color sampleRays(float x, float y, float division, Vector eye){
+Color sampleRays(float x, float y, float division, Vector eye, int steps){
 	Vector dir(x + division/2, y + division/2, -EDIST); 
 	dir.normalise();
 	Color oldAverage = trace(eye, dir, 1, airRefr);
+	if(steps == sampleSteps){
+		return oldAverage;
+	}
 	int nRays = 1;
 	while(true){
 		float nx = x + division * ((double) rand() / RAND_MAX);
@@ -172,7 +176,14 @@ Color sampleRays(float x, float y, float division, Vector eye){
 		newAverage.combineColor(traceCol, 1);
 		newAverage.scaleColor(1 / (double) (nRays + 1));
 		if(nRays >= minSamples && newAverage.dist(oldAverage) < sampleThresh){
-			return Color((double)nRays / 100, (double)nRays / 100, (double)nRays / 100);
+			return newAverage;
+		}
+		else if(nRays >= minSamples){
+			newAverage.combineColor(sampleRays(x, y, division / 2, eye, steps + 1), 1);
+			newAverage.combineColor(sampleRays(x + division/2, y, division / 2, eye, steps + 1), 1);
+			newAverage.combineColor(sampleRays(x, y + division/2, division / 2, eye, steps + 1), 1);
+			newAverage.combineColor(sampleRays(x + division/2, y + division/2, division / 2, eye, steps + 1), 1);
+			newAverage.scaleColor((double) 1 / (double) 5);
 			return newAverage;
 		}
 		else{
@@ -204,7 +215,7 @@ void display()
 		for(int j = 0; j < heightInPixels; j++)
 		{
 			y1 = YMIN + j*pixelSize;
-			Color pixelColor = sampleRays(x1, y1, pixelSize, eye);
+			Color pixelColor = sampleRays(x1, y1, pixelSize, eye, 1);
 
 
 			glColor3f(pixelColor.r, pixelColor.g, pixelColor.b);
