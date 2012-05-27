@@ -30,6 +30,8 @@ const float reflCoeff = 0.5;
 const float refrCoeff = 0.5;
 const float glassRefr = 1.03;//refraction index of "glass"
 const float airRefr = 1;//refraction index of "air"
+const double sampleThresh = 1e-4;
+const int minSamples = 10;
 
 vector<Object*> sceneObjects;
 
@@ -154,6 +156,32 @@ Color trace(Vector pos, Vector dir, int step, int refraction)
 
 }
 
+Color sampleRays(float x, float y, float division, Vector eye){
+	Vector dir(x + division/2, y + division/2, -EDIST); 
+	dir.normalise();
+	Color oldAverage = trace(eye, dir, 1, airRefr);
+	int nRays = 1;
+	while(true){
+		float nx = x + division * ((double) rand() / RAND_MAX);
+		float ny = y + division * ((double) rand() / RAND_MAX);
+		Vector newDir(nx + division/2, ny + division/2, -EDIST); 
+		newDir.normalise();
+		Color traceCol = trace(eye, newDir, 1, airRefr);
+		Color newAverage = oldAverage;
+		newAverage.scaleColor(nRays);
+		newAverage.combineColor(traceCol, 1);
+		newAverage.scaleColor(1 / (double) (nRays + 1));
+		if(nRays >= minSamples && newAverage.dist(oldAverage) < sampleThresh){
+			return Color((double)nRays / 100, (double)nRays / 100, (double)nRays / 100);
+			return newAverage;
+		}
+		else{
+			oldAverage = newAverage;
+			nRays++;
+		}
+	}
+}
+
 //---The main display module -----------------------------------------------------------
 // In a ray tracing application, it just displays the ray traced image by drawing
 // each pixel as quads.
@@ -163,8 +191,7 @@ void display()
 	int widthInPixels = (int)(WIDTH * PPU);
 	int heightInPixels = (int)(HEIGHT * PPU);
 	float pixelSize = 1.0/PPU;
-	float halfPixelSize = pixelSize/2.0;
-	float x1, y1, xc, yc;
+	float x1, y1;
 	Vector eye(0., 0., 0.);
 
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -174,18 +201,13 @@ void display()
 	for(int i = 0; i < widthInPixels; i++)	//Scan every "pixel"
 	{
 		x1 = XMIN + i*pixelSize;
-		xc = x1 + halfPixelSize;
 		for(int j = 0; j < heightInPixels; j++)
 		{
 			y1 = YMIN + j*pixelSize;
-			yc = y1 + halfPixelSize;
+			Color pixelColor = sampleRays(x1, y1, pixelSize, eye);
 
-			Vector dir(xc, yc, -EDIST);	//direction of the primary ray
 
-			dir.normalise();			//Normalise this direction
-
-			Color col = trace (eye, dir, 1, airRefr); //Trace the primary ray and get the colour value
-			glColor3f(col.r, col.g, col.b);
+			glColor3f(pixelColor.r, pixelColor.g, pixelColor.b);
 			glVertex2f(x1, y1);				//Draw each pixel with its color value
 			glVertex2f(x1 + pixelSize, y1);
 			glVertex2f(x1 + pixelSize, y1 + pixelSize);

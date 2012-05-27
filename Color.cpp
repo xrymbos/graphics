@@ -6,6 +6,7 @@
 *    phong lighting.
 -------------------------------------------------------------*/
 #include "Color.h"
+#include <cmath>
 
 void Color::scaleColor(float scaleFactor) {
     r = r * scaleFactor;
@@ -24,6 +25,13 @@ void Color::combineColor(Color col, float scaleFactor) {
     g +=  scaleFactor * col.g;
     b +=  scaleFactor * col.b;
  }
+
+float Color::dist(Color col){
+	double dr = r - col.r;
+	double dg = g - col.g;
+	double db = b - col.b;
+	return sqrt(dr*dr + dg*dg + db*db);
+}
 
 //Phong lighting equations:
 // Input:  Light's ambient color, l.n,  (r.v)^f
