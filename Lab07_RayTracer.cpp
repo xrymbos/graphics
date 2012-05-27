@@ -30,9 +30,9 @@ const float reflCoeff = 0.5;
 const float refrCoeff = 0.5;
 const float glassRefr = 1.03;//refraction index of "glass"
 const float airRefr = 1;//refraction index of "air"
-const double sampleThresh = 1e-4;
+const double sampleThresh = 5e-2;
 const int minSamples = 10;
-const int sampleSteps = 5;
+const int sampleSteps = 3;
 
 vector<Object*> sceneObjects;
 
@@ -158,39 +158,38 @@ Color trace(Vector pos, Vector dir, int step, int refraction)
 }
 
 Color sampleRays(float x, float y, float division, Vector eye, int steps){
-	Vector dir(x + division/2, y + division/2, -EDIST); 
-	dir.normalise();
-	Color oldAverage = trace(eye, dir, 1, airRefr);
+	Color average(0., 0., 0.);
+	vector<Color> corners;
+	for(int i=0;i<=1;i++){
+		for(int j=0;j<=1;j++){
+			Vector dir(x + division*i, y + division*j, -EDIST);
+			dir.normalise();
+			Color corner = trace(eye, dir, 1, airRefr);
+			average.combineColor(corner, 1);
+			corners.push_back(corner);
+		}
+	}
+	average.scaleColor(0.25);
 	if(steps == sampleSteps){
-		return oldAverage;
+		return average;
 	}
-	int nRays = 1;
-	while(true){
-		float nx = x + division * ((double) rand() / RAND_MAX);
-		float ny = y + division * ((double) rand() / RAND_MAX);
-		Vector newDir(nx + division/2, ny + division/2, -EDIST); 
-		newDir.normalise();
-		Color traceCol = trace(eye, newDir, 1, airRefr);
-		Color newAverage = oldAverage;
-		newAverage.scaleColor(nRays);
-		newAverage.combineColor(traceCol, 1);
-		newAverage.scaleColor(1 / (double) (nRays + 1));
-		if(nRays >= minSamples && newAverage.dist(oldAverage) < sampleThresh){
-			return newAverage;
-		}
-		else if(nRays >= minSamples){
-			newAverage.combineColor(sampleRays(x, y, division / 2, eye, steps + 1), 1);
-			newAverage.combineColor(sampleRays(x + division/2, y, division / 2, eye, steps + 1), 1);
-			newAverage.combineColor(sampleRays(x, y + division/2, division / 2, eye, steps + 1), 1);
-			newAverage.combineColor(sampleRays(x + division/2, y + division/2, division / 2, eye, steps + 1), 1);
-			newAverage.scaleColor((double) 1 / (double) 5);
-			return newAverage;
-		}
-		else{
-			oldAverage = newAverage;
-			nRays++;
+	bool recurse = false;
+	for(int i=0;i<4;i++){
+		if(corners[i].dist(average) > sampleThresh){
+			//return Color(0,0,0);
+			recurse = true;
 		}
 	}
+	//return Color(1,1,1);
+	if(recurse){
+		average = Color(0., 0., 0.);
+		average.combineColor(sampleRays(x, y, division / 2, eye, steps + 1), 1);
+		average.combineColor(sampleRays(x + division/2, y, division / 2, eye, steps + 1), 1);
+		average.combineColor(sampleRays(x, y + division/2, division / 2, eye, steps + 1), 1);
+		average.combineColor(sampleRays(x + division/2, y + division/2, division / 2, eye, steps + 1), 1);
+		average.scaleColor(0.25);
+	}
+	return average;
 }
 
 //---The main display module -----------------------------------------------------------
