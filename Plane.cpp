@@ -36,12 +36,14 @@ bool Plane::isInside(Vector pos)
 float Plane::intersect(Vector pos, Vector dir)
 {
 	Vector n = normal(pos);
-	if(fabs(dir.dot(n)) < eps){
+	if(fabs(dir.dot(n)) < eps)
+        {
 		return -1;
 	}
 	float t = ((a - pos).dot(n)) / dir.dot(n);
 	Vector inter = pos + (dir * t);
-	if(isInside(inter) && t > eps){
+	if(isInside(inter) && t > eps)
+        {
 		return t;
 	}
 	else{

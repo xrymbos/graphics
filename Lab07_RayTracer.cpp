@@ -30,9 +30,8 @@ const float reflCoeff = 0.5;
 const float refrCoeff = 0.5;
 const float glassRefr = 1.03;//refraction index of "glass"
 const float airRefr = 1;//refraction index of "air"
-const double sampleThresh = 5e-2;
-const int minSamples = 10;
-const int sampleSteps = 3;
+const double sampleThresh = 5e-2;//Sampling function will recurse if one of the corners differs from the average by more than this
+const int sampleSteps = 4;//Maximum level of recursion allowed in the sampling function
 
 vector<Object*> sceneObjects;
 
@@ -102,12 +101,11 @@ Color trace(Vector pos, Vector dir, int step, int refraction)
 	PointBundle blocker = closestPt(q.point, shadowRay);
 	double blockDist = blocker.point.dist(q.point);
 
-	if(q.index != 5 && (lDotn <= 0 || (blocker.index != -1 && blockDist < lightDist))){
-		/*if(blocker.index != -1){//easier to see which object is casting shadows
-		  return sceneObjects[blocker.index]->getColor();
-		  }*/
+	if(q.index != 5 && (lDotn <= 0 || (blocker.index != -1 && blockDist < lightDist)))
+        {
 		Color ret = col.phongLight(backgroundCol, 0.0, 0.0);
-		if(blocker.index == 5){
+		if(blocker.index == 5)
+                {
 			ret.combineColor(sceneObjects[blocker.index]->getColor(blocker.point), refrCoeff);
 		}
 		return ret;
@@ -122,16 +120,19 @@ Color trace(Vector pos, Vector dir, int step, int refraction)
 	else spec = pow(rDotv, 10);
 
 	Color colorSum = col.phongLight(backgroundCol, lDotn, spec);
-	if(q.index == 1 && step < MAX_STEPS){//we trace a reflection ray
+	if(q.index == 1 && step < MAX_STEPS)
+        {//we trace a reflection ray
 		Vector view = dir * -1;
 		Vector reflectionVector = ((n*2)*(n.dot(view))) - view;
 		reflectionVector.normalise();
 		Color reflectionCol = trace(q.point, reflectionVector, step+1, airRefr);
 		colorSum.combineColor(reflectionCol,reflCoeff);
 	}
-	if(q.index == 5 && step < MAX_STEPS){
+	if(q.index == 5 && step < MAX_STEPS)
+        {
 		double newRefr = -1;
-		if(refraction == airRefr){
+		if(refraction == airRefr)
+                {
 			newRefr = glassRefr;
 		}
 		else{
@@ -141,8 +142,10 @@ Color trace(Vector pos, Vector dir, int step, int refraction)
 		double N = refraction / newRefr;
 		double c2 = sqrt(1 - N * N * (1 - c1 * c1));
 		Vector refractionVector = dir * N + n * (N * c1 - c2);
-		if(refractionVector.dot(dir) < 0){
-			if(newRefr == airRefr){
+		if(refractionVector.dot(dir) < 0)
+                {
+			if(newRefr == airRefr)
+                        {
 				newRefr = glassRefr;
 			}
 			else{
@@ -157,11 +160,18 @@ Color trace(Vector pos, Vector dir, int step, int refraction)
 
 }
 
-Color sampleRays(float x, float y, float division, Vector eye, int steps){
+//---Adaptive antialiasing sampling function------------------------------------------
+// Recursively traces rays to determine the colour of a pixel
+// Divides the pixel into subregions if the corner colours differ from each other
+//------------------------------------------------------------------------------------
+Color sampleRays(float x, float y, float division, Vector eye, int steps)
+{
 	Color average(0., 0., 0.);
 	vector<Color> corners;
-	for(int i=0;i<=1;i++){
-		for(int j=0;j<=1;j++){
+	for(int i=0;i<=1;i++)
+        {
+		for(int j=0;j<=1;j++)
+                {
 			Vector dir(x + division*i, y + division*j, -EDIST);
 			dir.normalise();
 			Color corner = trace(eye, dir, 1, airRefr);
@@ -170,18 +180,20 @@ Color sampleRays(float x, float y, float division, Vector eye, int steps){
 		}
 	}
 	average.scaleColor(0.25);
-	if(steps == sampleSteps){
+	if(steps == sampleSteps)
+        {
 		return average;
 	}
 	bool recurse = false;
-	for(int i=0;i<4;i++){
-		if(corners[i].dist(average) > sampleThresh){
-			//return Color(0,0,0);
+	for(int i=0;i<4;i++)
+        {
+		if(corners[i].dist(average) > sampleThresh)
+                {
 			recurse = true;
 		}
 	}
-	//return Color(1,1,1);
-	if(recurse){
+	if(recurse)
+        {
 		average = Color(0., 0., 0.);
 		average.combineColor(sampleRays(x, y, division / 2, eye, steps + 1), 1);
 		average.combineColor(sampleRays(x + division/2, y, division / 2, eye, steps + 1), 1);

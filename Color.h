@@ -3,7 +3,7 @@
 *
 *  The color class
 *  A simple colour class with a set of operations including
-*    phong lighting.
+*  phong lighting.
 -------------------------------------------------------------*/
 
 #ifndef H_COLOR
