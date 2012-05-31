@@ -1,0 +1,536 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass article
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref true
+\pdf_bookmarks true
+\pdf_bookmarksnumbered false
+\pdf_bookmarksopen false
+\pdf_bookmarksopenlevel 1
+\pdf_breaklinks false
+\pdf_pdfborder true
+\pdf_colorlinks false
+\pdf_backref false
+\pdf_pdfusetitle true
+\papersize default
+\use_geometry true
+\use_amsmath 1
+\use_esint 1
+\use_mhchem 1
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 2cm
+\topmargin 2cm
+\rightmargin 2cm
+\bottommargin 2cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+COSC363 2012: Assignment 2
+\end_layout
+
+\begin_layout Author
+Jamie McCloskey(66241127)
+\end_layout
+
+\begin_layout Section
+Overview
+\end_layout
+
+\begin_layout Standard
+This raytracer builds on the framework developed in lab 7 and 8.
+ A significant portion of the code was part of the basic framework already
+ present in the lab, and as such was not written by me.
+\end_layout
+
+\begin_layout Standard
+My raytracer scene consists of four spheres, a 
+\lang british
+chequered
+\lang english
+ plane, and a box.
+ I have implemented refraction and adaptive antialiasing.
+ The final output of the scene is shown in figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:Scene-with-adaptive"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+The raytracer can be compiled with the command 
+\family typewriter
+g++ *.cpp -Wall -lGL -lGLU -lglut -O2 -o trace
+\family default
+.
+ The running time of the program is approximately 20 seconds on the lab
+ machines.
+\end_layout
+
+\begin_layout Section
+Features
+\end_layout
+
+\begin_layout Subsection
+Refraction
+\end_layout
+
+\begin_layout Standard
+Refraction rays were computed using the method described at 
+\begin_inset CommandInset href
+LatexCommand href
+name "http://www.cs.unc.edu/~rademach/xroads-RT/RTarticle.html"
+target "http://www.cs.unc.edu/~rademach/xroads-RT/RTarticle.html"
+
+\end_inset
+
+.
+ When an incident ray with direction 
+\begin_inset Formula $V$
+\end_inset
+
+ strikes an object with normal vector 
+\begin_inset Formula $N$
+\end_inset
+
+, the refracted ray 
+\begin_inset Formula $R$
+\end_inset
+
+ is given by 
+\begin_inset Formula 
+\begin{eqnarray*}
+c_{1} & = & -N\cdot V\\
+n & = & \frac{n_{1}}{n_{2}}\\
+c_{2} & = & \sqrt{1-n^{2}\left(1-c_{1}^{2}\right)}\\
+R & = & nV+\left(nc_{1}-c_{2}\right)N
+\end{eqnarray*}
+
+\end_inset
+
+ where 
+\begin_inset Formula $n_{1}$
+\end_inset
+
+ is the refractive index of the original medium and 
+\begin_inset Formula $n_{2}$
+\end_inset
+
+ is the refractive index of the new medium.
+ 
+\end_layout
+
+\begin_layout Standard
+The colour 
+\begin_inset Formula $R$
+\end_inset
+
+ of the refracted ray is found by recursive raytracing.
+ The returned colour 
+\begin_inset Formula $C$
+\end_inset
+
+ is given by 
+\begin_inset Formula $C=M+0.5R$
+\end_inset
+
+ where 
+\begin_inset Formula $M$
+\end_inset
+
+ is the colour of the material after performing lighting calculations.
+\end_layout
+
+\begin_layout Standard
+The blue sphere in the foreground of figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:Scene-with-adaptive"
+
+\end_inset
+
+ is transparent and has a refraction index of 1.03.
+ This is significantly lower than the refractive index of glass (which is
+ around 1.5), but higher values were found to cause too much refraction.
+\end_layout
+
+\begin_layout Subsection
+Coloured Shadows
+\end_layout
+
+\begin_layout Standard
+Coloured shadows for transparent objects were also implemented.
+ This adds extra realism to the scene as light appears to shine through
+ these objects.
+ When it is determined that a point is in a shadow cast by a transparent
+ object, the colour of the transparent object is combined with the colour
+ of the material.
+\end_layout
+
+\begin_layout Subsection
+Antialiasing
+\end_layout
+
+\begin_layout Standard
+Adaptive antialiasing was used to reduce jagged edges in the rendering.
+ This process traces a number of rays to determine the colour of each pixel.
+ The number of rays used will be higher if the pixel contains a border between
+ two different 
+\lang british
+colours
+\lang english
+.
+\end_layout
+
+\begin_layout Standard
+The exact process used to sample a square region of the image works as follows.
+\end_layout
+
+\begin_layout Standard
+First, four rays are traced to the corners of the square region to find
+ the colours 
+\begin_inset Formula $c_{1}$
+\end_inset
+
+,
+\begin_inset Formula $c_{2}$
+\end_inset
+
+,
+\begin_inset Formula $c_{3}$
+\end_inset
+
+,
+\begin_inset Formula $c_{4}$
+\end_inset
+
+.
+ The average 
+\begin_inset Formula $c_{A}$
+\end_inset
+
+ of these colours is computed.
+ If the Euclidean distance 
+\begin_inset Formula $d\left(c_{k},c_{A}\right)$
+\end_inset
+
+ from any one of the corner colours to the average colour exceeds a threshold
+ 
+\begin_inset Formula $T$
+\end_inset
+
+, the square region is split up into four equal square subregions.
+ The Euclidian distance between colours is defined below.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+d\left(c_{k},c_{A}\right)=\sqrt{\left(c_{k}\left[\mbox{red}\right]-c_{A}\left[\mbox{red}\right]\right)^{2}+\left(c_{k}\left[\mbox{green}\right]-c_{A}\left[\mbox{green}\right]\right)^{2}+\left(c_{k}\left[\mbox{blue}\right]-c_{A}\left[\mbox{blue}\right]\right)^{2}}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+If the region is split up, the process is repeated on the subregions and
+ the average of the subregion colours is returned.
+\end_layout
+
+\begin_layout Standard
+A recursion limit 
+\begin_inset Formula $L$
+\end_inset
+
+ is imposed to reduce rendering times and avoid infinite recursion.
+ This means that if the function recurses 
+\begin_inset Formula $L$
+\end_inset
+
+ levels deep, the colour returned will be the average of the four corner
+ values regardless of whether they differ from the average colour.
+\end_layout
+
+\begin_layout Standard
+Different values can be used for the threshold value 
+\begin_inset Formula $T$
+\end_inset
+
+ and the recursion limit 
+\begin_inset Formula $L$
+\end_inset
+
+.
+ I found that setting 
+\begin_inset Formula $T=0.02$
+\end_inset
+
+ and 
+\begin_inset Formula $L=4$
+\end_inset
+
+ produced satisfactory results on my test scene while still keeping render
+ times fairly low.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Caption
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:Scene-without-antialiasing"
+
+\end_inset
+
+Scene without antialiasing
+\end_layout
+
+\end_inset
+
+
+\begin_inset Graphics
+	filename scene-aliased.png
+	scale 50
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Scene with adaptive antialiasing
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:Scene-with-adaptive"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Graphics
+	filename scene-adaptive.png
+	scale 50
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Levels of recursion required for antialiasing with a threshold value of
+ 
+\begin_inset Formula $T=0.02$
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:recursion-required"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Graphics
+	filename antialiasing-edges.png
+	scale 50
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The scene without antialiasing is shown in figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:Scene-without-antialiasing"
+
+\end_inset
+
+.
+ The scene with adaptive antialiasing applied is shown in figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:Scene-with-adaptive"
+
+\end_inset
+
+.
+ The difference between these images is quite significant, and the antialiasing
+ significantly reduced the jagged edges.
+\end_layout
+
+\begin_layout Standard
+To help choose a threshold value, I created images showing how many levels
+ of recursion were required to sample each pixel.
+ One of these images, with a threshold value of 
+\begin_inset Formula $T=0.02$
+\end_inset
+
+, is shown in figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:recursion-required"
+
+\end_inset
+
+.
+ Brighter areas correspond to a higher level of recursion and therefore
+ are indicative of areas which are changing colour quickly.
+\end_layout
+
+\begin_layout Section
+Challenges and possible improvements
+\end_layout
+
+\begin_layout Standard
+Non-axis-aligned cubes are not supported.
+ This could be fixed by specifying an orientation when constructing the
+ cube, and rotating the component quadrilaterals to match the orientation
+ vectors.
+\end_layout
+
+\begin_layout Standard
+The antialiasing is fairly slow.
+ This may be partially due to the fact that it will trace the corners of
+ each pixel multiple times, once for each level of recursion.
+ This could be improved by caching the colour of each source ray and returning
+ the cached value instead of re-tracing the ray.
+ Alternatively, random sampling could be used instead of sampling the four
+ corners.
+ This might allow each level of recursion to use less samples, and would
+ also prevent against edge cases where all four corners of a pixel are the
+ same colour, but the interior of the pixel contains an edge.
+\end_layout
+
+\begin_layout Standard
+When the antialiasing sampling function recurses, it returns the average
+ value of the four subregions.
+ This may not produce the most accurate estimate of the region colour as
+ some of the subregions may have more sample rays traced in them than others.
+ For a more accurate result, each subregion colour could be weighted by
+ the number of sample rays in that subregion.
+\end_layout
+
+\begin_layout Standard
+Hardcoded indices were used to decide if an object should be reflective
+ or transparent.
+ Furthermore, objects with different refraction indices are not supported.
+ This is not extensible.
+ To improve this, variables could be added to the 
+\family typewriter
+Object
+\family default
+ class to keep track of whether an object is reflective and/or refractive,
+ along with its refraction index.
+\end_layout
+
+\end_body
+\end_document
